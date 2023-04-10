@@ -56,8 +56,13 @@ def on_message_order(results, data):
 
     tick_size = 0.1
 
-    best_bid = max(frames['b']['price'])
-    best_ask = min(frames['a']['price'])
+     try:
+        best_bid = max(frames['b']['price'])
+        best_ask = min(frames['a']['price'])
+    except ValueError:
+        best_bid = np.NaN
+        best_ask = np.NaN
+    
     mid_price = (best_bid + best_ask) / 2
 
     ask_vol = frames['a'].quantity[frames['a'].price < mid_price + tick_size].sum()

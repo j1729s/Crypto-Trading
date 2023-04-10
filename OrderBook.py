@@ -1,5 +1,6 @@
 import websocket
 import json
+import numpy as np
 import pandas as pd
 from Secrets import api_key, api_secret
 

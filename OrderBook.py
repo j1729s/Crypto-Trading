@@ -57,7 +57,7 @@ def on_message_order(results, data):
 
     tick_size = 0.1
 
-     try:
+    try:
         best_bid = max(frames['b']['price'])
         best_ask = min(frames['a']['price'])
     except ValueError:

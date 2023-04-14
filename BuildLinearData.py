@@ -111,7 +111,7 @@ def linear_data(Order_Book, Kline_data, l=5, d=20, N=300):
                               np.where(ldata["AskDiff"] == 0, ldata["AVolDiff"], 0)), index=ldata.index)
     ldata["VOI_(t)"] = dBid - dAsk
     
-    # Calculating VOI for each lag by shifting data
+    # Calculating OIR and VOI for each lag by shifting data
     for i in range(1, l+1):
         ldata[f"OIR_(t-{i})"] = ldata["OIR_(t)"].shift(i)
         ldata[f"VOI_(t-{i})"] = ldata["VOI_(t)"].shift(i)

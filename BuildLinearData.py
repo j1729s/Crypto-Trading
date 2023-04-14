@@ -63,7 +63,7 @@ def join_data(Order_Book, Kline_Data):
     return Order_Book.join(Kline_Data)
 
 
-def linear_data(Order_Book, Kline_data, l=5, d=20):
+def linear_data(Order_Book, Kline_data, l=5, d=20, N=300):
     """
     Build up linear data for linear model
     :param Order_Book: Raw Order Book Data (250ms ticks)
@@ -95,7 +95,7 @@ def linear_data(Order_Book, Kline_data, l=5, d=20):
     ldata["MPC"] = ldata["MidPrice"].shift(-1).rolling(d).mean().shift(1-d) - ldata["MidPrice"]
     
     # Calculating Mid Price Basis
-    ldata["MPB"] = np.where(ldata["VolDiff"] != 0, ((ldata.iloc[:,4]/ldata.iloc[:,5])/300), np.nan)
+    ldata["MPB"] = np.where(ldata["VolDiff"] != 0, ((ldata.iloc[:,4]/ldata.iloc[:,5])/N), np.nan)
     ldata["MPB"] = ldata["MPB"].fillna(method='ffill')
     index_mpb = ldata.columns.get_loc("MPB")
     index_mp = ldata.columns.get_loc("MidPrice")

@@ -70,6 +70,7 @@ def linear_data(Order_Book, Kline_data, l=5, d=20, N=300):
     :param Kline_Data: Raw Kline Data (250ms ticks)
     :param l: the no. of LAGS for VOI and OIR determined by the ACF Plot
     :param d: the no. of DELAYS (in future) for calculating the mid price change
+    :param N: a constant used while calculating MPB, refer the paper
     :return: Dataframe with the required metrics
     """
     

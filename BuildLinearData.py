@@ -89,6 +89,7 @@ def linear_data(Order_Book, Kline_data, l=5, d=20, N=300):
     # Calculating first diferrences of various columns and dropping null rows
     ldata = data[["BestBid", "BidVol", "BestAsk", "AskVol", "Turnover", "Volume"]].diff().rename(columns=convention)
     ldata[["BidVol", "AskVol", "MidPrice", "Price"]] = data[["BidVol", "AskVol", "MidPrice", "Price"]]
+    ldata["Spread"] = data["BestAsk"] - data["BestBid"]
     ldata.drop(ldata.index[0], inplace=True)
     
     # Calculating Mid Price Change for given delays

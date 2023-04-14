@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 def join_data(Order_Book, Kline_Data):
     """
     Joins Raw data into usable dataframes
@@ -12,6 +13,21 @@ def join_data(Order_Book, Kline_Data):
     # Removing unwanted column
     Order_Book = Order_Book.drop("Unnamed: 0", axis=1)
     Kline_Data = Kline_Data.drop("Unnamed: 0", axis=1)
+    
+    # Smoothening sharp jumps (>10 percent) in the Bid and Ask price
+    avgP = Kline_Data["Price"].mean()
+    dummy = Order_Book[["BestBid", "BestAsk"]].diff()
+    index_b = Order_Book[["BestBid"]][abs(dummy["BestBid"]) > 0.1*avgP].index
+    index_a = Order_Book[["BestAsk"]][abs(dummy["BestAsk"]) > 0.1*avgP].index
+    
+    ## Vectorization possible but harder to handle consecutive jumps will improve later on
+    for i in index_b:
+        if i+1 in index_b:
+            Order_Book.loc[i, "BestBid"] = Order_Book.loc[i-1, "BestBid"]
+
+    for i in index_a:
+        if i+1 in index_a:
+            Order_Book.loc[i, "BestAsk"] = Order_Book.loc[i-1, "BestAsk"]
     
     # Removing NaN values from Order Book Data
     Order_Book[["BestBid", "BestAsk", "MidPrice"]] = Order_Book[["BestBid", "BestAsk", "MidPrice"]].fillna(method='ffill')
@@ -90,7 +106,11 @@ def linear_data(Order_Book, Kline_data, l=5, d=20, N=300):
     # Calculating first diferrences of various columns and dropping null rows
     ldata = data[["BestBid", "BidVol", "BestAsk", "AskVol", "Turnover", "Volume"]].diff().rename(columns=convention)
     ldata[["BidVol", "AskVol", "MidPrice", "Price"]] = data[["BidVol", "AskVol", "MidPrice", "Price"]]
-    ldata["Spread"] = data["BestAsk"] - data["BestBid"]
+    
+    # Dealing with a inverted market by straightening it up and equally weighting no spread and negative spread as one tenth the tick size
+    ldata["Spread"] = ""
+    ldata["Spread"] = (data["BestAsk"] - data["BestBid"])[data["BestAsk"] - data["BestBid"] > 0]
+    ldata["Spread"].fillna(value=0.01, inplace=True)
     ldata.drop(ldata.index[0], inplace=True)
     
     # Calculating Mid Price Change for given delays

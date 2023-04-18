@@ -69,3 +69,6 @@ def on_message_order(results, data):
 
     data.loc[len(data)] = [results['E'], best_bid, best_ask, ask_vol, bid_vol]
     return data
+
+if __name__ == '__main__':
+    OrderBook = get_order_book('BTCUSDT')

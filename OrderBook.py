@@ -42,8 +42,8 @@ def get_order_book(ticker):
             if len(result) > 2:
                 data = on_message_order(result, data)
     except KeyboardInterrupt:
-        return data
         print(data)
+        return data
 
 def on_message_order(results, data):
     """

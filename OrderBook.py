@@ -1,6 +1,6 @@
 import websocket
-import json
 import numpy as np
+import json
 import pandas as pd
 from Secrets import api_key, api_secret
 
@@ -13,7 +13,7 @@ def get_order_book(ticker):
 
     symbol = ticker.lower()
 
-    data = pd.DataFrame(columns=['Timestamp', 'BestBid', 'BestAsk', 'MidPrice', 'AskVol', 'BidVol'])
+    data = pd.DataFrame(columns=['Timestamp', 'BestBid', 'BestAsk', 'AskVol', 'BidVol'])
 
     # create the WebSocket connection and provide the API key in the headers
 
@@ -44,7 +44,6 @@ def get_order_book(ticker):
     except KeyboardInterrupt:
         return data
 
-
 def on_message_order(results, data):
     """
     For parsing through the request result
@@ -56,7 +55,7 @@ def on_message_order(results, data):
                                  dtype=float) for side in ["b", "a"]}
 
     tick_size = 0.1
-
+    
     try:
         best_bid = max(frames['b']['price'])
         best_ask = min(frames['a']['price'])
@@ -64,10 +63,9 @@ def on_message_order(results, data):
         best_bid = np.NaN
         best_ask = np.NaN
     
-    mid_price = (best_bid + best_ask) / 2
-
+    mid_price = (best_bid + best_ask)/2
     ask_vol = frames['a'].quantity[frames['a'].price < mid_price + tick_size].sum()
     bid_vol = frames['b'].quantity[frames['b'].price > mid_price - tick_size].sum()
 
-    data.loc[len(data)] = [results['E'], best_bid, best_ask, mid_price, ask_vol, bid_vol]
+    data.loc[len(data)] = [results['E'], best_bid, best_ask, ask_vol, bid_vol]
     return data

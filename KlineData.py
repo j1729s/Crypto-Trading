@@ -39,8 +39,8 @@ def get_kline(ticker):
             if len(result) > 2:
                 data = on_message_kline(result, data)
     except KeyboardInterrupt:
-        return data
         print(data)
+        return data
 
 
 def on_message_kline(results, data):

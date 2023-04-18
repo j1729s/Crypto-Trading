@@ -29,6 +29,7 @@ def backtest_strategy(train_data, test_data, threshold=0.2, l=5):
     df = test_data[["Price", "MPC_pred"]]
     df["MPC"] = y_true
     
+    # Define Constants
     own = False
     position = 0
     TC = 0.0003

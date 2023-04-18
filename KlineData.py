@@ -56,3 +56,6 @@ def on_message_kline(results, data):
 
     data.loc[len(data)] = [results['E'], price, volume, trade_no]
     return data
+
+if __name__ == '__main__':
+    KlineData = get_kline('BTCUSDT')

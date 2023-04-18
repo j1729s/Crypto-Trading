@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pandas as pd
 #from sklearn.preprocessing import MinMaxScaler
@@ -144,3 +145,27 @@ def linear_data(Order_Book, Kline_data, l=5, d=20, N=300):
     
     # Return dataframe with required metrics
     return ldata.dropna()
+
+
+if __name__ == '__main__':
+    
+    # Create an argument parser
+    parser = argparse.ArgumentParser(description='Build up linear data for linear model')
+
+    # Add arguments
+    parser.add_argument('order_book_path', type=str, help='Path to raw Order Book data CSV file')
+    parser.add_argument('kline_data_path', type=str, help='Path to raw Kline Data CSV file')
+    parser.add_argument('-l', type=int, default=5, help='The number of lags for VOI and OIR determined by the ACF Plot (default=5)')
+    parser.add_argument('-d', type=int, default=20, help='The number of delays (in future) for calculating the mid price change (default=20)')
+    parser.add_argument('-N', type=int, default=300, help='A constant used while calculating MPB, refer the paper (default=300)')
+
+    # Parse the arguments
+    args = parser.parse_args()
+    
+    # Read the data into a dataframe
+    OrderBook = pd.read_csv(args.order_book_path)
+    KlineData = pd.read_csv(args.kline_data_path)
+
+    # Call the function with the parsed arguments
+    data = linear_data(OrderBook, KlineData, args.l, args.d, args.N)
+    print(data)

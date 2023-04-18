@@ -1,7 +1,10 @@
+import argparse
+import warnings
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from BuildLinearModel import build_linear_model
+warnings.filterwarnings("ignore")
 
 
 def backtest_strategy(train_data, test_data, threshold=0.2, l=5):
@@ -101,3 +104,25 @@ def backtest_strategy(train_data, test_data, threshold=0.2, l=5):
     print("Total Trade Volume = {} trades".format(t_volume))
     
     return df
+
+
+if __name__ == '__main__':
+    
+    # Create an argument parser
+    parser = argparse.ArgumentParser(description='Backtest the trading strategy and print out the metrics.')
+    
+    # Add arguments
+    parser.add_argument('train_file', help='Path to training dataset CSV file')
+    parser.add_argument('test_file', help='Path to test dataset CSV file')
+    parser.add_argument('--threshold', type=float, default=0.2, help='Trading threshold (default=0.2)')
+    parser.add_argument('--lags', type=int, default=5, help='The no. of LAGS for VOI and OIR determined by the ACF Plot (default=5)')
+    
+    # Parse the arguments
+    args = parser.parse_args()
+    
+    # Read the data into a dataframe
+    train = pd.read_csv(args.train_file)
+    test = pd.read_csv(args.test_file)
+    
+    # Call the function with the parsed arguments
+    backtest_strategy(train, test, args.threshold, args.lags)

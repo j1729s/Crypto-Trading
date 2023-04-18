@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -77,3 +78,25 @@ def validate_model(train_data, test_data, l=5, threshold=0.2):
 
     # print the accuracy score
     print("Accuracy score: {:.2f}".format(accuracy))
+    
+    
+    if __name__ == '__main__':
+    
+    # Create an argument parser
+    parser = argparse.ArgumentParser(description='Builds and validates a linear model.')
+    
+    # Add arguments
+    parser.add_argument('train_file', help='Path to training dataset CSV file')
+    parser.add_argument('test_file', help='Path to test dataset CSV file')
+    parser.add_argument('-l', type=int, default=5, help='The number of lags for VOI and OIR (default=5)')
+    parser.add_argument('-t', '--threshold', type=float, default=0.2, help='Trading threshold (default=0.2)')
+    
+    # Parse the arguments
+    args = parser.parse_args()
+    
+    # Read the data into a dataframe
+    train = pd.read_csv(args.train_file)
+    test = pd.read_csv(args.test_file)
+    
+    # Call the function with the parsed arguments
+    validate_model(train, test, args.l, args.threshold)

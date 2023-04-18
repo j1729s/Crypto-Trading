@@ -43,6 +43,7 @@ def get_order_book(ticker):
                 data = on_message_order(result, data)
     except KeyboardInterrupt:
         return data
+        print(data)
 
 def on_message_order(results, data):
     """

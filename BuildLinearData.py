@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
+#from sklearn.preprocessing import MinMaxScaler
 
 
-def join_data(Order_Book, Kline_Data):
+def join_data(Order_Book, Kline_Data, freq='250ms'):
     """
     Joins Raw data into usable dataframes
     :param Order_Book: Raw Order Book Data (250ms ticks)
@@ -20,7 +21,7 @@ def join_data(Order_Book, Kline_Data):
     index_b = Order_Book[["BestBid"]][abs(dummy["BestBid"]) > 0.1*avgP].index
     index_a = Order_Book[["BestAsk"]][abs(dummy["BestAsk"]) > 0.1*avgP].index
     
-    ## Vectorization possible but harder to handle consecutive jumps will improve later on
+    ## Vectorization possible but harder to handle consecutive jumps therefore not efficient
     for i in index_b:
         if i+1 in index_b:
             Order_Book.loc[i, "BestBid"] = Order_Book.loc[i-1, "BestBid"]
@@ -30,7 +31,7 @@ def join_data(Order_Book, Kline_Data):
             Order_Book.loc[i, "BestAsk"] = Order_Book.loc[i-1, "BestAsk"]
     
     # Removing NaN values from Order Book Data
-    Order_Book[["BestBid", "BestAsk", "MidPrice"]] = Order_Book[["BestBid", "BestAsk", "MidPrice"]].fillna(method='ffill')
+    Order_Book[["BestBid", "BestAsk"]] = Order_Book[["BestBid", "BestAsk"]].fillna(method='ffill')
     
     # Adding Turnover to Kline Data
     Kline_Data["Turnover"] = Kline_Data["NumberOfTrades"]*Kline_Data["Price"]*10 #Tick Value = Contract size * Tick size = $100 * $0.1
@@ -72,8 +73,8 @@ def join_data(Order_Book, Kline_Data):
     Kline_Data.drop("Timestamp", axis=1, inplace=True)
     
     # Upsampling to 250ms data incase of gaps
-    Order_Book = Order_Book.resample("250ms").last().ffill()
-    Kline_Data = Kline_Data.resample("250ms").last().ffill()
+    Order_Book = Order_Book.resample(freq).last().ffill()
+    Kline_Data = Kline_Data.resample(freq).last().ffill()
     
     # Returns joined dataset
     return Order_Book.join(Kline_Data)
@@ -105,12 +106,13 @@ def linear_data(Order_Book, Kline_data, l=5, d=20, N=300):
     
     # Calculating first diferrences of various columns and dropping null rows
     ldata = data[["BestBid", "BidVol", "BestAsk", "AskVol", "Turnover", "Volume"]].diff().rename(columns=convention)
-    ldata[["BidVol", "AskVol", "MidPrice", "Price"]] = data[["BidVol", "AskVol", "MidPrice", "Price"]]
+    ldata[["BidVol", "AskVol", "Price"]] = data[["BidVol", "AskVol", "Price"]]
+    ldata["MidPrice"] = (data["BestAsk"] + data["BestBid"])/2
     
-    # Dealing with a inverted market by straightening it up and equally weighting no spread and negative spread as one tenth the tick size
-    ldata["Spread"] = ""
-    ldata["Spread"] = (data["BestAsk"] - data["BestBid"])[data["BestAsk"] - data["BestBid"] > 0]
-    ldata["Spread"].fillna(value=0.01, inplace=True)
+    # Dealing with a inverted market by straightening it up and weighting it, while weighting no spread as one tenth the tick size
+    ldata["Spread"] = np.where(data["BestAsk"] - data["BestBid"] > 0, data["BestAsk"] - data["BestBid"], 
+                               np.where(data["BestAsk"] - data["BestBid"] == 0, 0.01, 100))
+    
     ldata.drop(ldata.index[0], inplace=True)
     
     # Calculating Mid Price Change for given delays

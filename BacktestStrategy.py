@@ -46,6 +46,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5)
     t_cost = 0
     t_volume = 0
     
+    # What to test? Real or predicted?
     if to_test == 'Pred':
         data = df['MPC_pred']
     

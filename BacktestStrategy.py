@@ -107,6 +107,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5)
             t_cost += TC*price
             t_volume += 1
     
+    # Print Metrics
     print("Profit before transaction cost = {} USD".format(sum(cost)))
     print("Transaction Cost = {} USD".format(t_cost))
     print("Total Profit = {} USD".format(sum(cost)-t_cost))

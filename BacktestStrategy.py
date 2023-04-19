@@ -26,9 +26,14 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5)
                        f'OIR': test_data["OIR_(t)"] / test_data["Spread"], **{f'VOI{i}': test_data[f"VOI_(t-{i})"] / test_data["Spread"] 
                         for i in range(1,l+1)}, **{f'OIR{i}': test_data[f"OIR_(t-{i})"] / test_data["Spread"] for i in range(1,l+1)}})
     
+    # Predicting MPC
     y_pred = model.predict(sm.add_constant(df))
+    
+    # Converting to multinomial classifier
     y_pred = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
     test_data["MPC_pred"] = y_pred
+    
+    # Converting to multinomial classifier
     y_true = pd.Series(np.where(test_data["MPC"] > threshold, 1, np.where(test_data["MPC"] < -threshold, -1, 0)), index=test_data.index)
     df = test_data[["Price", "MPC_pred"]]
     df["MPC"] = y_true

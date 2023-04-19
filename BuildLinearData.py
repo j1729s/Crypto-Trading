@@ -12,9 +12,10 @@ def join_data(Order_Book, Kline_Data, freq='250ms'):
     :return: Joined dataframe with no gaps
     """
     
-    # Removing unwanted column
-    Order_Book = Order_Book.drop("Unnamed: 0", axis=1)
-    Kline_Data = Kline_Data.drop("Unnamed: 0", axis=1)
+    if "Unnamed: 0" in Order_Book.columns and "Unnamed: 0" in Kline_Data.columns:
+        # Removing unwanted column
+        Order_Book = Order_Book.drop("Unnamed: 0", axis=1)
+        Kline_Data = Kline_Data.drop("Unnamed: 0", axis=1)
     
     # Smoothening sharp jumps (>10 percent) in the Bid and Ask price
     avgP = Kline_Data["Price"].mean()

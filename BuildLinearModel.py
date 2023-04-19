@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-from sklearn.preprocessing import MinMaxScaler
+#from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, explained_variance_score, accuracy_score
 
 
@@ -56,6 +56,7 @@ def validate_model(train_data, test_data, l=5, threshold=0.2):
     #scaler = MinMaxScaler(feature_range=(0.01, 10))
     #df = pd.DataFrame(scaler.fit_transform(df), columns=df.columns)
     
+    # Predict MPC
     y_pred = model.predict(sm.add_constant(df.drop('y', axis=1)))
     y_true = df['y']
     

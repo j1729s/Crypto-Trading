@@ -7,7 +7,7 @@ from BuildLinearModel import build_linear_model
 warnings.filterwarnings("ignore")
 
 
-def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5):
+def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5, optimise=False):
     """
     Backtests the strategy and prints out the metrics
     :param train_data: Training Dataset
@@ -26,17 +26,25 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5)
                        f'OIR': test_data["OIR_(t)"] / test_data["Spread"], **{f'VOI{i}': test_data[f"VOI_(t-{i})"] / test_data["Spread"] 
                         for i in range(1,l+1)}, **{f'OIR{i}': test_data[f"OIR_(t-{i})"] / test_data["Spread"] for i in range(1,l+1)}})
     
-    # Predicting MPC
-    y_pred = model.predict(sm.add_constant(df))
+    if to_test == 'Pred':
+        
+        # Predicting MPC
+        y_pred = model.predict(sm.add_constant(df))
     
-    # Converting to multinomial classifier
-    y_pred = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
-    test_data["MPC_pred"] = y_pred
+        # Converting to multinomial classifier
+        y_pred = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
+        y_true = pd.Series(np.where(test_data["MPC"] > threshold, 1, np.where(test_data["MPC"] < -threshold, -1, 0)), index=test_data.index)
+        test_data["MPC_pred"] = y_pred
+        
+        df = test_data[["Price", "MPC_pred"]]
+        df["MPC"] = y_true
+        data = df['MPC_pred']
     
-    # Converting to multinomial classifier
-    y_true = pd.Series(np.where(test_data["MPC"] > threshold, 1, np.where(test_data["MPC"] < -threshold, -1, 0)), index=test_data.index)
-    df = test_data[["Price", "MPC_pred"]]
-    df["MPC"] = y_true
+    elif to_test == 'Real':
+        
+        y_true = pd.Series(np.where(test_data["MPC"] > threshold, 1, np.where(test_data["MPC"] < -threshold, -1, 0)), index=test_data.index)
+        df = test_data[["Price"]]
+        data = y_true
     
     # Define Constants
     own = False
@@ -46,12 +54,9 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5)
     t_cost = 0
     t_volume = 0
     
-    # What to test? Real or predicted?
-    if to_test == 'Pred':
-        data = df['MPC_pred']
     
-    elif to_test == 'Real':
-        data = df['MPC']
+    
+    
     
     for index in data.index:
         
@@ -112,14 +117,23 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5)
             cost.append(-1*price)
             t_cost += TC*price
             t_volume += 1
-    
+   
     # Print Metrics
-    print("Profit before transaction cost = {} USD".format(sum(cost)))
-    print("Transaction Cost = {} USD".format(t_cost))
-    print("Total Profit = {} USD".format(sum(cost)-t_cost))
-    print("Total Trade Volume = {} trades".format(t_volume))
+    if optimise == False:
+        
+        print("Profit before transaction cost = {} USD".format(sum(cost)))
+        print("Transaction Cost = {} USD".format(t_cost))
+        print("Total Profit = {} USD".format(sum(cost)-t_cost))
+        print("Total Trade Volume = {} trades".format(t_volume))
     
-    return df
+        # Return Price and MPC data
+        return df
+    
+    # Use this when optimising
+    if optimise:
+        
+        # Return trading cost, transaction cost and trade volume data
+        return cost, t_cost, t_volume
 
 
 if __name__ == '__main__':
@@ -142,4 +156,4 @@ if __name__ == '__main__':
     test = pd.read_csv(args.test_file)
     
     # Call the function with the parsed arguments
-    backtest_strategy(train, test, args.to_test, args.threshold, args.lags)
+    backtest_strategy(train, test, args.to_test, args.threshold, args.lags, False)

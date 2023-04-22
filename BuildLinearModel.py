@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-#from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, explained_variance_score, accuracy_score
 
 
@@ -35,7 +35,7 @@ def build_linear_model(train_data, function='Validate', l=5):
         return model.params
 
 
-def validate_model(train_data, test_data, l=5, threshold=0.2):
+def validate_model(train_data, test_data, l=5, threshold=0.2, optimise=False):
     """
     Prints out metrics for model evaluation
     :param train_data: Training Dataset
@@ -56,7 +56,6 @@ def validate_model(train_data, test_data, l=5, threshold=0.2):
     #scaler = MinMaxScaler(feature_range=(0.01, 10))
     #df = pd.DataFrame(scaler.fit_transform(df), columns=df.columns)
     
-    # Predict MPC
     y_pred = model.predict(sm.add_constant(df.drop('y', axis=1)))
     y_true = df['y']
     
@@ -64,24 +63,29 @@ def validate_model(train_data, test_data, l=5, threshold=0.2):
     mse = mean_squared_error(y_true, y_pred)
     r2 = r2_score(y_true, y_pred)
     evs = explained_variance_score(y_true, y_pred)
-
-    # Print the results
-    print("Mean squared error: {:.2f}".format(mse))
-    print("R^2 score: {:.2f}".format(r2))
-    print("Explained variance score: {:.2f}".format(evs))
-    
+   
     # Converting to multinomial classifier
     y_true = np.where(df['y'] > threshold, 1, np.where(df['y'] < -threshold, -1, 0))
     y_pred = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
     
     # calculate accuracy score for the predictions
     accuracy = accuracy_score(y_true, y_pred)
-
-    # print the accuracy score
-    print("Accuracy score: {:.2f}".format(accuracy))
     
+    if optimise == False:
+        
+        # Print the results
+        print("Mean squared error: {:.2f}".format(mse))
+        print("R^2 score: {:.2f}".format(r2))
+        print("Explained variance score: {:.2f}".format(evs))
+        print("Accuracy score: {:.2f}".format(accuracy))
+        
+    elif optimise:
+        
+        # Returns accuracy score for optimisation
+        return accuracy
+        
     
-    if __name__ == '__main__':
+if __name__ == '__main__':
     
     # Create an argument parser
     parser = argparse.ArgumentParser(description='Builds and validates a linear model.')
@@ -100,4 +104,4 @@ def validate_model(train_data, test_data, l=5, threshold=0.2):
     test = pd.read_csv(args.test_file)
     
     # Call the function with the parsed arguments
-    validate_model(train, test, args.l, args.threshold)
+    validate_model(train, test, args.l, args.threshold, False)

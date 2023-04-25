@@ -49,7 +49,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
     # Define Constants
     own = False
     position = 0
-    TC = 0.0003
+    TC = 0.000207
     cost = []
     t_cost = 0
     t_volume = 0

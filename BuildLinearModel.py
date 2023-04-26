@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-from sklearn.preprocessing import MinMaxScaler
+#from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, explained_variance_score, accuracy_score
 
 
@@ -95,6 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('test_file', help='Path to test dataset CSV file')
     parser.add_argument('-l', type=int, default=5, help='The number of lags for VOI and OIR (default=5)')
     parser.add_argument('-t', '--threshold', type=float, default=0.2, help='Trading threshold (default=0.2)')
+    parser.add_argument('--optimise', action='store_true', help='Enable model hyperparameter optimization')
     
     # Parse the arguments
     args = parser.parse_args()
@@ -104,4 +105,4 @@ if __name__ == '__main__':
     test = pd.read_csv(args.test_file)
     
     # Call the function with the parsed arguments
-    validate_model(train, test, args.l, args.threshold, False)
+    validate_model(train, test, args.l, args.threshold, args.optimise)

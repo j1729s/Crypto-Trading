@@ -1,7 +1,6 @@
 import argparse
 import numpy as np
 import pandas as pd
-#from sklearn.preprocessing import MinMaxScaler
 
 
 def join_data(Order_Book, Kline_Data, freq='250ms'):
@@ -128,9 +127,7 @@ def linear_data(Order_Book, Kline_data, l=5, d=20, N=1):
     # Calculating Mid Price Basis
     ldata["MPB"] = np.where(ldata["VolDiff"] != 0, ((ldata.iloc[:,4]/ldata.iloc[:,5])/N), np.nan)
     ldata["MPB"] = ldata["MPB"].fillna(method='ffill')
-    index_mpb = ldata.columns.get_loc("MPB")
-    index_mp = ldata.columns.get_loc("MidPrice")
-    ldata.iloc[0, index_mpb] = ldata.iloc[0, index_mp]
+    ldata.iloc[0, ldata.columns.get_loc("MPB")] = ldata.iloc[0, ldata.columns.get_loc("MidPrice")]
     ldata["MPB"] = ldata["MPB"] - ldata["AvgMP"]
     
     # Calculating OIR

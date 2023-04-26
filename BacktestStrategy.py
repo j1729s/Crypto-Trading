@@ -18,15 +18,15 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
     :return: dataframe with Price, Predicted MPC, and True MPC as columns
     """
     
-    # Retrieve trained model
-    model = build_linear_model(train_data, l=l)
+    if to_test == 'Pred':
+        
+        # Retrieve trained model
+        model = build_linear_model(train_data, l=l)
     
-    # Build the explanatory variables
-    df = pd.DataFrame({'MPB': test_data["MPB"] / test_data["Spread"], 'VOI': test_data["VOI_(t)"] / test_data["Spread"], 
+        # Build the explanatory variables
+        df = pd.DataFrame({'MPB': test_data["MPB"] / test_data["Spread"], 'VOI': test_data["VOI_(t)"] / test_data["Spread"], 
                        f'OIR': test_data["OIR_(t)"] / test_data["Spread"], **{f'VOI{i}': test_data[f"VOI_(t-{i})"] / test_data["Spread"] 
                         for i in range(1,l+1)}, **{f'OIR{i}': test_data[f"OIR_(t-{i})"] / test_data["Spread"] for i in range(1,l+1)}})
-    
-    if to_test == 'Pred':
         
         # Predicting MPC
         y_pred = model.predict(sm.add_constant(df))
@@ -53,10 +53,6 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
     cost = []
     t_cost = 0
     t_volume = 0
-    
-    
-    
-    
     
     for index in data.index:
         
@@ -147,6 +143,7 @@ if __name__ == '__main__':
     parser.add_argument('--to_test', type=str, default='Pred', help='Backtest with real or predicted data')
     parser.add_argument('--threshold', type=float, default=0.2, help='Trading threshold (default=0.2)')
     parser.add_argument('--lags', type=int, default=5, help='The no. of LAGS for VOI and OIR determined by the ACF Plot (default=5)')
+    parser.add_argument('--optimise', action='store_true', help='Enable model hyperparameter optimization')
     
     # Parse the arguments
     args = parser.parse_args()
@@ -156,4 +153,4 @@ if __name__ == '__main__':
     test = pd.read_csv(args.test_file)
     
     # Call the function with the parsed arguments
-    backtest_strategy(train, test, args.to_test, args.threshold, args.lags, False)
+    backtest_strategy(train, test, args.to_test, args.threshold, args.lags, args.optimise)

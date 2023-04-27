@@ -38,7 +38,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
         
         df = test_data[["Price", "MPC_pred"]]
         df["MPC"] = y_true
-        data = df['MPC_pred']
+        data = test_data['MPC_pred']
     
     elif to_test == 'Real':
         
@@ -53,6 +53,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
     cost = []
     t_cost = 0
     t_volume = 0
+    return_df = pd.DataFrame(columns=["Time", "Price", "Position", "Profit"])
     
     for index in data.index:
         
@@ -65,6 +66,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
             cost.append(-1*price)
             t_cost += TC*price
             t_volume += 1
+            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
             
         # SELL to OPEN    
         elif own == False and data.loc[index] == -1:
@@ -75,6 +77,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
             cost.append(price)
             t_cost += TC*price
             t_volume += 1
+            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
             
         # SELL to TRADE
         elif own and position == 1 and data.loc[index] == -1:
@@ -86,6 +89,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
             cost.append(price)
             t_cost += 2*TC*price
             t_volume += 2
+            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
             
         # BUY to TRADE    
         elif own and position == -1 and data.loc[index] == 1:
@@ -97,23 +101,28 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
             cost.append(-1*price)
             t_cost += 2*TC*price
             t_volume += 2
-        
+            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
+            
         # CLOSE at day end
         elif position == 1 and index == data.index[-1]:
             
+            position = 0
             price = df.loc[index, "Price"]
             cost.append(price)
             t_cost += TC*price
             t_volume += 1
-        
+            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
+            
         # CLOSE at day end
         elif position == -1 and index == data.index[-1]:
             
+            position = 0
             price = df.loc[index, "Price"]
             cost.append(-1*price)
             t_cost += TC*price
             t_volume += 1
-   
+            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
+            
     # Print Metrics
     if optimise == False:
         
@@ -122,8 +131,9 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
         print("Total Profit = {} USD".format(sum(cost)-t_cost))
         print("Total Trade Volume = {} trades".format(t_volume))
     
-        # Return Price and MPC data
-        return df
+        # Return Trade data
+        return_df.set_index("Time", inplace=True)
+        return return_df.join(df[["MPC","MPC_pred"]])
     
     # Use this when optimising
     if optimise:

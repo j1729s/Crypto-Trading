@@ -1,12 +1,78 @@
 import argparse
-import warnings
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from BuildLinearModel import build_linear_model
-warnings.filterwarnings("ignore")
 
 
+class Action:
+    """
+    Executes trades based on strategy, keeps tracks of the position, and yields the trade information.
+    """
+    def __init__(self):
+        # Initial State
+        self.own = False
+        self.position = 0
+        self.TC = 0.000207
+        self.cost = 0
+        self.t_cost = 0
+        self.t_volume = 0
+        
+    def open_trade(self, price):
+        # Opens a position at 'day' start
+        self.own = True
+        self.position = 1 if price < 0 else -1
+        self.t_cost += self.TC * abs(price)
+        self.t_volume += 1
+        self.cost = price
+        
+    def trade(self, price):
+        # Trades by longing or shorting two contracts at once
+        self.position = 1 if price < 0 else -1
+        self.t_cost += 2 * self.TC * abs(price)
+        self.t_volume += 2
+        self.cost = 2* price
+        
+    def close_trade(self, price):
+        # Closes the position at 'day' end
+        self.position = 0
+        self.t_cost += self.TC * abs(price)
+        self.t_volume += 1
+        self.cost = price
+        self.own = False
+        
+    def __call__(self, data):
+        # Parse through the data to identify the trade and yield the identifiers as a dictionary
+        for index in data.index:
+            
+            signal, price = data.loc[index, "Signal"], data.loc[index, "Price"]
+            
+            # In position, BUY/SELL to:
+            if self.own:
+                
+                # TRADE
+                if self.position == 1 and signal == -1:
+                    self.trade(price)
+                    yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
+                           "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost} 
+                elif self.position == -1 and signal == 1:
+                    self.trade(-1*price)
+                    yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
+                           "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost}
+                    
+                # CLOSE   
+                elif index == data.index[-1]:
+                    self.close_trade(price) if self.position == 1 else self.close_trade(-1*price)
+                    yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
+                           "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost}
+                    
+            # NOT in position, BUY/SELL to OPEN    
+            else:
+                self.open_trade(-1*price) if signal == 1 else self.open_trade(price)
+                yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
+                           "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost}
+
+                
 def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5, optimise=False):
     """
     Backtests the strategy and prints out the metrics
@@ -15,7 +81,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
     :param to_test: Backtest with real or predicted data
     :param l: the no. of LAGS for VOI and OIR determined by the ACF Plot
     :param threshold: trading threshold
-    :return: dataframe with Price, Predicted MPC, and True MPC as columns
+    :return: dataframe with Trade info
     """
     
     if to_test == 'Pred':
@@ -30,116 +96,54 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
         
         # Predicting MPC
         y_pred = model.predict(sm.add_constant(df))
-    
+        del df
+        
         # Converting to multinomial classifier
         y_pred = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
-        y_true = pd.Series(np.where(test_data["MPC"] > threshold, 1, np.where(test_data["MPC"] < -threshold, -1, 0)), index=test_data.index)
         test_data["MPC_pred"] = y_pred
         
-        df = test_data[["Price", "MPC_pred"]]
-        df["MPC"] = y_true
-        data = test_data['MPC_pred']
+        # Formatting Data
+        data = test_data[["Price", "MPC_pred"]][(test_data['MPC_pred'] == 1) | (test_data['MPC_pred'] == -1)]
+        data.loc[test_data.index[-1]] = test_data.loc[test_data.index[-1], ["Price", "MPC_pred"]]
+        data.rename(columns = {"MPC_pred" : "Signal"}, inplace=True)
     
     elif to_test == 'Real':
         
+        # Converting to multinomial classifier
         y_true = pd.Series(np.where(test_data["MPC"] > threshold, 1, np.where(test_data["MPC"] < -threshold, -1, 0)), index=test_data.index)
-        df = test_data[["Price"]]
-        data = y_true
-    
-    # Define Constants
-    own = False
-    position = 0
-    TC = 0.000207
-    cost = []
-    t_cost = 0
-    t_volume = 0
-    return_df = pd.DataFrame(columns=["Time", "Price", "Position", "Profit"])
-    
-    for index in data.index:
+        test_data["MPC"] = y_true
         
-        # BUY to OPEN
-        if own == False and data.loc[index] == 1:
-            
-            own = True
-            position = 1
-            price = df.loc[index, "Price"]
-            cost.append(-1*price)
-            t_cost += TC*price
-            t_volume += 1
-            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
-            
-        # SELL to OPEN    
-        elif own == False and data.loc[index] == -1:
-           
-            own = True
-            position = -1
-            price = df.loc[index, "Price"]
-            cost.append(price)
-            t_cost += TC*price
-            t_volume += 1
-            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
-            
-        # SELL to TRADE
-        elif own and position == 1 and data.loc[index] == -1:
-            
-            own == True
-            position = -1
-            price = df.loc[index, "Price"]
-            cost.append(price)
-            cost.append(price)
-            t_cost += 2*TC*price
-            t_volume += 2
-            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
-            
-        # BUY to TRADE    
-        elif own and position == -1 and data.loc[index] == 1:
-            
-            own == True
-            position = 1
-            price = df.loc[index, "Price"]
-            cost.append(-1*price)
-            cost.append(-1*price)
-            t_cost += 2*TC*price
-            t_volume += 2
-            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
-            
-        # CLOSE at day end
-        elif position == 1 and index == data.index[-1]:
-            
-            position = 0
-            price = df.loc[index, "Price"]
-            cost.append(price)
-            t_cost += TC*price
-            t_volume += 1
-            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
-            
-        # CLOSE at day end
-        elif position == -1 and index == data.index[-1]:
-            
-            position = 0
-            price = df.loc[index, "Price"]
-            cost.append(-1*price)
-            t_cost += TC*price
-            t_volume += 1
-            return_df.loc[len(return_df)] = [index, price, position, (sum(cost) - t_cost)]
-            
+        # Formatting Data
+        data = test_data[["Price", "MPC"]][(test_data['MPC'] == 1) | (test_data['MPC'] == -1)]
+        data.loc[test_data.index[-1]] = test_data.loc[test_data.index[-1], ["Price", "MPC"]]
+        data.rename(columns = {"MPC" : "Signal"}, inplace=True)
+    
+    # Create an instance of the class Action
+    action = Action()
+    
+    # Fill in the data into a list of dictionaries
+    return_list = []
+    for trade in action(data):
+        return_list.append(trade)
+    
+    # Convert list of dictionaries to a usable dataframe
+    return_df = pd.DataFrame.from_dict(return_list)
+    return_df.set_index("Time", inplace=True)
+    
+    # Add in the profit columns
+    return_df["Profit Before TC"] = return_df["Profit Before TC"].cumsum()
+    return_df["Total Profit"] = return_df["Profit Before TC"] - return_df["Transaction Cost"]
+    
     # Print Metrics
     if optimise == False:
         
-        print("Profit before transaction cost = {} USD".format(sum(cost)))
-        print("Transaction Cost = {} USD".format(t_cost))
-        print("Total Profit = {} USD".format(sum(cost)-t_cost))
-        print("Total Trade Volume = {} trades".format(t_volume))
-    
-        # Return Trade data
-        return_df.set_index("Time", inplace=True)
-        return return_df.join(df[["MPC","MPC_pred"]])
-    
-    # Use this when optimising
-    if optimise:
+        print("Profit before transaction cost = {} USD".format(sum(return_df["Trade Cost"])))
+        print("Transaction Cost = {} USD".format(return_df.iloc[-1,5]))
+        print("Total Profit = {} USD".format(return_df.iloc[-1,6]))
+        print("Total Trade Volume = {} trades".format(return_df.iloc[-1,3]))
         
-        # Return trading cost, transaction cost and trade volume data
-        return cost, t_cost, t_volume
+    # Return Dataframe with Trade Data
+    return return_df
 
 
 if __name__ == '__main__':

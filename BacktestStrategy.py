@@ -50,8 +50,14 @@ class Action:
             # In position, BUY/SELL to:
             if self.own:
                 
+                # CLOSE   
+                if index == data.index[-1]:
+                    self.close_trade(price) if self.position == 1 else self.close_trade(-1*price)
+                    yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
+                           "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost}
+                    
                 # TRADE
-                if self.position == 1 and signal == -1:
+                elif self.position == 1 and signal == -1:
                     self.trade(price)
                     yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
                            "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost} 
@@ -59,12 +65,7 @@ class Action:
                     self.trade(-1*price)
                     yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
                            "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost}
-                    
-                # CLOSE   
-                elif index == data.index[-1]:
-                    self.close_trade(price) if self.position == 1 else self.close_trade(-1*price)
-                    yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
-                           "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost}
+                
                     
             # NOT in position, BUY/SELL to OPEN    
             else:
@@ -81,7 +82,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
     :param to_test: Backtest with real or predicted data
     :param l: the no. of LAGS for VOI and OIR determined by the ACF Plot
     :param threshold: trading threshold
-    :return: dataframe with Trade info
+    :return: dataframe with Price, Predicted MPC, and True MPC as columns
     """
     
     if to_test == 'Pred':
@@ -94,27 +95,31 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
                        f'OIR': test_data["OIR_(t)"] / test_data["Spread"], **{f'VOI{i}': test_data[f"VOI_(t-{i})"] / test_data["Spread"] 
                         for i in range(1,l+1)}, **{f'OIR{i}': test_data[f"OIR_(t-{i})"] / test_data["Spread"] for i in range(1,l+1)}})
         
-        # Predicting MPC
+        # Predicting MPC and converting to multinomial classifier
         y_pred = model.predict(sm.add_constant(df))
+        y_pred = pd.Series(np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)), index=test_data.index)
         del df
         
-        # Converting to multinomial classifier
-        y_pred = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
-        test_data["MPC_pred"] = y_pred
+        # Copying Data
+        data = test_data[["Price"]].copy()
         
         # Formatting Data
-        data = test_data[["Price", "MPC_pred"]][(test_data['MPC_pred'] == 1) | (test_data['MPC_pred'] == -1)]
-        data.loc[test_data.index[-1]] = test_data.loc[test_data.index[-1], ["Price", "MPC_pred"]]
+        data["MPC_pred"] = y_pred
+        data = data[["Price", "MPC_pred"]][(data['MPC_pred'] == 1) | (data['MPC_pred'] == -1)]
+        data.loc[test_data.index[-1]] = test_data.loc[test_data.index[-1], ["Price", "MPC"]]
         data.rename(columns = {"MPC_pred" : "Signal"}, inplace=True)
     
     elif to_test == 'Real':
         
-        # Converting to multinomial classifier
+        # Converting MPC to multinomial classifier
         y_true = pd.Series(np.where(test_data["MPC"] > threshold, 1, np.where(test_data["MPC"] < -threshold, -1, 0)), index=test_data.index)
-        test_data["MPC"] = y_true
+        
+        # Copying Data
+        data = test_data[["Price"]].copy()
         
         # Formatting Data
-        data = test_data[["Price", "MPC"]][(test_data['MPC'] == 1) | (test_data['MPC'] == -1)]
+        data["MPC"] = y_true
+        data = data[["Price", "MPC"]][(data['MPC'] == 1) | (data['MPC'] == -1)]
         data.loc[test_data.index[-1]] = test_data.loc[test_data.index[-1], ["Price", "MPC"]]
         data.rename(columns = {"MPC" : "Signal"}, inplace=True)
     

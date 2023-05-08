@@ -9,6 +9,7 @@ class Action:
     """
     Executes trades based on strategy, keeps tracks of the position, and yields the trade information.
     """
+    
     def __init__(self):
         # Initial State
         self.own = False
@@ -65,9 +66,8 @@ class Action:
                     self.trade(-1*price)
                     yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
                            "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost}
-                
-                    
-            # NOT in position, BUY/SELL to OPEN    
+                      
+            # NOT in position, BUY/SELL to OPEN
             else:
                 self.open_trade(-1*price) if signal == 1 else self.open_trade(price)
                 yield {"Time": index, "Price": price, "Position": self.position, "Trade Cost": self.cost, 
@@ -106,6 +106,10 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
         # Formatting Data
         data["MPC_pred"] = y_pred
         data = data[["Price", "MPC_pred"]][(data['MPC_pred'] == 1) | (data['MPC_pred'] == -1)]
+        
+        # Return dataframe with Nan values in case there areno MPC in the given range for a threshold
+        if len(data)==0:
+            return pd.DataFrame(np.NaN, index=[0], columns=["Price","Position", "Trade Cost", "Volume", "Profit Before TC", "Transaction Cost", "Total Profit"])
         data.loc[test_data.index[-1]] = test_data.loc[test_data.index[-1], ["Price", "MPC"]]
         data.rename(columns = {"MPC_pred" : "Signal"}, inplace=True)
     
@@ -120,6 +124,10 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
         # Formatting Data
         data["MPC"] = y_true
         data = data[["Price", "MPC"]][(data['MPC'] == 1) | (data['MPC'] == -1)]
+        
+        # Return dataframe with Nan values in case there areno MPC in the given range for a threshold
+        if len(data)==0:
+            return pd.DataFrame(np.NaN, index=[0], columns=["Price","Position", "Trade Cost", "Volume", "Profit Before TC", "Transaction Cost", "Total Profit"])
         data.loc[test_data.index[-1]] = test_data.loc[test_data.index[-1], ["Price", "MPC"]]
         data.rename(columns = {"MPC" : "Signal"}, inplace=True)
     

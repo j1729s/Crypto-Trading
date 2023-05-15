@@ -10,7 +10,7 @@ class Action:
     Executes trades based on strategy, keeps tracks of the position, and yields the trade information.
     """
     
-    def __init__(self):
+    def __init__(self, size):
         # Initial State
         self.own = False
         self.position = 0
@@ -18,28 +18,29 @@ class Action:
         self.cost = 0
         self.t_cost = 0
         self.t_volume = 0
+        self.size = size
         
     def open_trade(self, price):
         # Opens a position at 'day' start
         self.own = True
         self.position = 1 if price < 0 else -1
-        self.t_cost += self.TC * abs(price)
-        self.t_volume += 1
-        self.cost = price
+        self.t_cost += self.size * self.TC * abs(price)
+        self.t_volume += 1 * self.size
+        self.cost = price * self.size
         
     def trade(self, price):
         # Trades by longing or shorting two contracts at once
         self.position = 1 if price < 0 else -1
-        self.t_cost += 2 * self.TC * abs(price)
-        self.t_volume += 2
-        self.cost = 2* price
+        self.t_cost += 2 * self.TC * abs(price) * self.size
+        self.t_volume += 2 * self.size
+        self.cost = 2 * price * self.size
         
     def close_trade(self, price):
         # Closes the position at 'day' end
         self.position = 0
-        self.t_cost += self.TC * abs(price)
-        self.t_volume += 1
-        self.cost = price
+        self.t_cost += self.size * self.TC * abs(price)
+        self.t_volume += 1 * self.size
+        self.cost = price * self.size
         self.own = False
         
     def __call__(self, data):
@@ -74,7 +75,8 @@ class Action:
                            "Volume": self.t_volume, "Profit Before TC": self.cost, "Transaction Cost": self.t_cost}
 
                 
-def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5, optimise=False):
+def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5, optimise=False, position_size=1):
+    assert position_size>=1, "Balance too LOW to take a position!!"
     """
     Backtests the strategy and prints out the metrics
     :param train_data: Training Dataset
@@ -132,7 +134,7 @@ def backtest_strategy(train_data, test_data, to_test='Pred', threshold=0.2, l=5,
         data.rename(columns = {"MPC" : "Signal"}, inplace=True)
     
     # Create an instance of the class Action
-    action = Action()
+    action = Action(position_size)
     
     # Fill in the data into a list of dictionaries
     return_list = []
@@ -171,6 +173,7 @@ if __name__ == '__main__':
     parser.add_argument('--threshold', type=float, default=0.2, help='Trading threshold (default=0.2)')
     parser.add_argument('--lags', type=int, default=5, help='The no. of LAGS for VOI and OIR determined by the ACF Plot (default=5)')
     parser.add_argument('--optimise', action='store_true', help='Enable model hyperparameter optimization')
+    parser.add_argument('--position_size', type=int, default=1, help='Position size (default: 1)')
     
     # Parse the arguments
     args = parser.parse_args()
@@ -180,4 +183,4 @@ if __name__ == '__main__':
     test = pd.read_csv(args.test_file)
     
     # Call the function with the parsed arguments
-    backtest_strategy(train, test, args.to_test, args.threshold, args.lags, args.optimise)
+    backtest_strategy(train, test, args.to_test, args.threshold, args.lags, args.optimise, args.position_size)

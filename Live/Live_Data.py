@@ -130,6 +130,7 @@ class DataHandler:
             raise e  # re-throw the exception to be caught in the calling function
 
     def open_websocket(self):
+        global RECONNECT_DELAY
         symbol = self.symbol
         websocket.enableTrace(False)
         while True:  # Keep trying to connect

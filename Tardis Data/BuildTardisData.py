@@ -28,7 +28,7 @@ def join_data(Order_Book, Kline_Data, freq='100ms'):
     
     # Group Trade data by timestamp to aggregate trades and join
     ## Price is the mean price for a timestamp while volume is the sum
-    Kline_Data = (Kline_Data[['timestamp', 'amount']].groupby('timestamp').sum()).join(Kline_Data[['timestamp', 'price']].groupby('timestamp').mean()).reset_index()
+    Kline_Data = (Kline_Data[['timestamp', 'amount']].groupby('timestamp').sum()).join(Kline_Data[['timestamp', 'price']].groupby('timestamp').last()).reset_index()
     
     # Calculate volume since day start as cumulative sum
     Kline_Data['amount'] = Kline_Data['amount'].cumsum()
@@ -78,14 +78,14 @@ def linear_data(Order_Book, Kline_data, freq='100ms', l=0, d=2, mpb='original'):
     
     # Calculating first diferrences of various columns and dropping null rows
     ldata = data[["BestBid", "BidVol", "BestAsk", "AskVol", "Volume", "Turnover", "Price"]].diff().rename(columns=convention)
-    ldata[["BidVol", "AskVol", "Price"]] = data[["BidVol", "AskVol", "Price"]]
+    ldata[["BidVol", "AskVol", "Price", "BestBid", "BestAsk"]] = data[["BidVol", "AskVol", "Price", "BestBid", "BestAsk"]]
     ldata["MidPrice"] = (data["BestAsk"] + data["BestBid"])/2
-    
-    # Calculating Spread
-    ldata["Spread"] = data["BestAsk"] - data["BestBid"]
     
     # Calculating Average of MidPrice for (t,t-1) to be used while calculating MPB
     ldata["AvgMP"] = (ldata["MidPrice"] + ldata["MidPrice"].shift(1))/2
+    
+    # Calculating Spread
+    ldata["Spread"] = data["BestAsk"] - data["BestBid"]
     
     # Drop first row with Nan values
     ldata.drop(ldata.index[0], inplace=True)

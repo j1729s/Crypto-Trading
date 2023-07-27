@@ -122,7 +122,7 @@ def linear_data(Order_Book, Kline_data, freq='100ms', l=0, d=2, mpb='original'):
         ldata[f"VOI_(t-{i})"] = ldata["VOI_(t)"].shift(i)
         
     # Dropping irrelevant columns
-    ldata = ldata.drop(columns=ldata.columns[:9])
+    ldata = ldata.drop(columns=ldata.columns[:7])
     ldata = ldata.drop(columns=["AvgMP"])
     
     # Return dataframe with required metrics

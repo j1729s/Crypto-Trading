@@ -1,0 +1,1 @@
+This is a naive strategy that actually makes good money with a rebate account. But it only works in a sideways market and blows up during large jumps or crashes. So it's not worth it. I was originally looking for a taker strategy but couldn't get to it so I turned it into a cummulative maker strategy.

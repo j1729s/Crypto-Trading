@@ -1,0 +1,2 @@
+pub const BUFFER_SIZE: usize = 60 * 60; // Each tuple in the buffer is an aggregate of 1 sec volume data, this number represents the number of such tuples in the data
+pub const TRADES_BUFFER: usize = 1000; // Each one representing a single trade

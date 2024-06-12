@@ -2,7 +2,7 @@
 
 This contains templates of various trading strategies that are my IP and have been tried live. 
 
-Jupyter files contains my analysis on Order Flow Imbalance, Trade Imbalance, and other predictors of mid price change.
+Jupyter files contains my analysis on Order Flow Imbalance, Trade Imbalance, and other predictors of mid price change. Some are backtests for taker strategies same goes for 'Tardis Data' folder. I had to redo it because I noticed discrepancies in the data I was collecting. I was eventually able to solve that. So didn't need tardis again!
 
 The 'Live' folder contains some mm strategies I tried about a year ago at the very start of my trading journey on Binance.
 

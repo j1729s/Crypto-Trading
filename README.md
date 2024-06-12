@@ -8,4 +8,4 @@ The 'Live' folder contains some mm strategies I tried about a year ago at the ve
 
 The 'Market Making' folder contains templates for mm strategies that I tried on OKx. But my client got a better deal from ByBit.
 
-The 'ByBit' folder contains my work on ByBit. The templates have not been uploaded yet. Because it is a work in progress. I'd like to make both my maker and my taker strategies as profutable as can before I add in a template. Although, some Rust helper libraries will be added from time to time.
+The 'ByBit' folder contains my work on ByBit. The templates have not been uploaded yet. Because it is a work in progress. I'd like to make both my maker and my taker strategies as profitable as can before I add in a template. Although, some Rust helper libraries will be added from time to time.
